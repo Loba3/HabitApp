@@ -10,7 +10,9 @@ import com.example.habittracker.model.Habit
 
 class HabitAdapter(
     private val habits: List<Habit>,
-    private val onChecked: (Habit, Boolean) -> Unit
+    private val completedToday: List<Int>,
+    private val onChecked: (Habit, Boolean) -> Unit,
+    private val onDelete: (Habit) -> Unit
 ) : RecyclerView.Adapter<HabitAdapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -29,11 +31,18 @@ class HabitAdapter(
 
         holder.textView.text = "${habit.name} - ${habit.description}"
 
-        holder.checkBox.setOnCheckedChangeListener(null) // prevent recycle bug
-        holder.checkBox.isChecked = false
+        holder.checkBox.setOnCheckedChangeListener(null)
+
+        // THIS IS THE KEY LINE
+        holder.checkBox.isChecked = completedToday.contains(habit.id)
 
         holder.checkBox.setOnCheckedChangeListener { _, isChecked ->
             onChecked(habit, isChecked)
+        }
+
+        holder.itemView.setOnLongClickListener {
+            onDelete(habit)
+            true
         }
     }
 
