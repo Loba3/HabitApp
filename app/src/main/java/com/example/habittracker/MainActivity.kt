@@ -18,6 +18,8 @@ import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
+    private var selectedDate: LocalDate = LocalDate.now()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -25,12 +27,25 @@ class MainActivity : AppCompatActivity() {
         val recyclerView = findViewById<RecyclerView>(R.id.recyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this)
 
+        setupDateStrip()
+
         val addButton = findViewById<Button>(R.id.addButton)
         addButton.setOnClickListener {
             showAddDialog()
         }
 
         fetchHabits()
+    }
+
+    private fun setupDateStrip() {
+        val dates = (6 downTo 0).map { LocalDate.now().minusDays(it.toLong()) }
+        val dateRecyclerView = findViewById<RecyclerView>(R.id.dateRecyclerView)
+        dateRecyclerView.layoutManager =
+            LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        dateRecyclerView.adapter = DateAdapter(dates, selectedDate) { date ->
+            selectedDate = date
+            fetchHabits()
+        }
     }
 
     private fun fetchHabits() {
@@ -43,7 +58,7 @@ class MainActivity : AppCompatActivity() {
                 val habits = habitsResponse.body() ?: emptyList()
                 val logs = logsResponse.body() ?: emptyList()
 
-                val today = getToday()
+                val today = selectedDate.toString()
 
                 val completedToday = logs
                     .filter { it.date.startsWith(today) && it.completed }
@@ -52,7 +67,11 @@ class MainActivity : AppCompatActivity() {
                 val progressText = findViewById<TextView>(R.id.progressText)
                 val completedCount = completedToday.size
                 val total = habits.size
-                progressText.text = "$completedCount / $total habits completed"
+                progressText.text = getString(
+                    R.string.completed_format,
+                    completedCount,
+                    total
+                )
 
                 val recyclerView = findViewById<RecyclerView>(R.id.recyclerView)
 

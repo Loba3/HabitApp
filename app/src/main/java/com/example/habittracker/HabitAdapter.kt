@@ -19,6 +19,7 @@ class HabitAdapter(
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val checkBox: CheckBox = view.findViewById(R.id.checkBox)
         val textView: TextView = view.findViewById(R.id.habitText)
+        val descView: TextView = view.findViewById(R.id.habitDescription)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -30,7 +31,8 @@ class HabitAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val habit = habits[position]
 
-        holder.textView.text = "${habit.name} - ${habit.description}"
+        holder.textView.text = habit.name
+        holder.descView.text = habit.description
 
         holder.checkBox.setOnCheckedChangeListener(null)
 
