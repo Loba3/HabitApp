@@ -10,10 +10,19 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
 
+data class HabitInLog(
+    val id: Int,
+    val name: String,
+    val description: String,
+    val logs: List<String> = emptyList()
+)
+
 data class HabitLogRequest(
+    val id: Int = 0,
     val date: String,
     val completed: Boolean,
-    val habitId: Int
+    val habitId: Int,
+    val habit: HabitInLog
 )
 
 interface ApiService {

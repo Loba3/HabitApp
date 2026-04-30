@@ -1,19 +1,25 @@
 package com.example.habittracker
 
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.habittracker.model.Habit
+import com.example.habittracker.network.HabitInLog
 import com.example.habittracker.network.HabitLogRequest
 import com.example.habittracker.network.RetrofitInstance
+import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -38,7 +44,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupDateStrip() {
-        val dates = (6 downTo 0).map { LocalDate.now().minusDays(it.toLong()) }
+        val dates = (-3..3).map { LocalDate.now().plusDays(it.toLong()) }
         val dateRecyclerView = findViewById<RecyclerView>(R.id.dateRecyclerView)
         dateRecyclerView.layoutManager =
             LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
@@ -61,17 +67,11 @@ class MainActivity : AppCompatActivity() {
                 val today = selectedDate.toString()
 
                 val completedToday = logs
-                    .filter { it.date.startsWith(today) && it.completed }
-                    .map { it.habitId }
-
-                val progressText = findViewById<TextView>(R.id.progressText)
-                val completedCount = completedToday.size
-                val total = habits.size
-                progressText.text = getString(
-                    R.string.completed_format,
-                    completedCount,
-                    total
-                )
+                    .filter { log -> log.date.take(10) == today }
+                    .groupBy { it.habitId }
+                    .filter { (_, entries) -> entries.maxByOrNull { it.id }?.completed == true }
+                    .keys
+                    .toList()
 
                 val recyclerView = findViewById<RecyclerView>(R.id.recyclerView)
 
@@ -79,7 +79,8 @@ class MainActivity : AppCompatActivity() {
                     habits,
                     completedToday,
                     onChecked = { habit, isChecked ->
-                        if (isChecked) markHabitComplete(habit.id)
+                        if (isChecked) markHabitComplete(habit)
+                        else markHabitIncomplete(habit)
                     },
                     onDelete = { habit ->
                         deleteHabit(habit.id)
@@ -92,16 +93,46 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun markHabitComplete(habitId: Int) {
+    private fun markHabitComplete(habit: Habit) {
         lifecycleScope.launch {
             try {
                 val log = HabitLogRequest(
-                    date = getToday(),
+                    date = selectedDate.toString() + "T00:00:00Z",
                     completed = true,
-                    habitId = habitId
+                    habitId = habit.id,
+                    habit = HabitInLog(habit.id, habit.name, habit.description)
                 )
+                val response = RetrofitInstance.api.createLog(log)
+                if (response.isSuccessful) {
+                    fetchHabits()
+                } else {
+                    val errorBody = response.errorBody()?.string() ?: "no body"
+                    Log.e("HabitTracker", "createLog failed ${response.code()}: $errorBody")
+                    Toast.makeText(this@MainActivity, "Error ${response.code()}: $errorBody", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
 
-                RetrofitInstance.api.createLog(log)
+    private fun markHabitIncomplete(habit: Habit) {
+        lifecycleScope.launch {
+            try {
+                val log = HabitLogRequest(
+                    date = selectedDate.toString() + "T00:00:00Z",
+                    completed = false,
+                    habitId = habit.id,
+                    habit = HabitInLog(habit.id, habit.name, habit.description)
+                )
+                val response = RetrofitInstance.api.createLog(log)
+                if (response.isSuccessful) {
+                    fetchHabits()
+                } else {
+                    val errorBody = response.errorBody()?.string() ?: "no body"
+                    Log.e("HabitTracker", "createLog failed ${response.code()}: $errorBody")
+                    Toast.makeText(this@MainActivity, "Error ${response.code()}: $errorBody", Toast.LENGTH_LONG).show()
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -188,4 +219,9 @@ class MainActivity : AppCompatActivity() {
     private fun getToday(): String {
         return LocalDate.now().toString()
     }
+
+    private fun getNow(): String {
+        return Instant.now().toString()
+    }
+
 }
