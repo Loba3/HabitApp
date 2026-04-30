@@ -12,7 +12,8 @@ class HabitAdapter(
     private val habits: List<Habit>,
     private val completedToday: List<Int>,
     private val onChecked: (Habit, Boolean) -> Unit,
-    private val onDelete: (Habit) -> Unit
+    private val onDelete: (Habit) -> Unit,
+    private val onEdit: (Habit) -> Unit
 ) : RecyclerView.Adapter<HabitAdapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -40,8 +41,22 @@ class HabitAdapter(
             onChecked(habit, isChecked)
         }
 
+        holder.itemView.setOnClickListener {
+            holder.checkBox.isChecked = !holder.checkBox.isChecked
+        }
+
         holder.itemView.setOnLongClickListener {
-            onDelete(habit)
+            val popup = android.widget.PopupMenu(holder.itemView.context, holder.itemView)
+            popup.menu.add("Edit")
+            popup.menu.add("Delete")
+            popup.setOnMenuItemClickListener { item ->
+                when (item.title) {
+                    "Edit" -> onEdit(habit)
+                    "Delete" -> onDelete(habit)
+                }
+                true
+            }
+            popup.show()
             true
         }
     }

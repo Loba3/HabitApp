@@ -2,8 +2,11 @@ package com.example.habittracker
 
 import android.os.Bundle
 import android.widget.Button
+import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.activity.ComponentActivity
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -13,7 +16,7 @@ import com.example.habittracker.network.RetrofitInstance
 import java.time.LocalDate
 import kotlinx.coroutines.launch
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,7 +27,7 @@ class MainActivity : ComponentActivity() {
 
         val addButton = findViewById<Button>(R.id.addButton)
         addButton.setOnClickListener {
-            addHabit("New Habit", "Description")
+            showAddDialog()
         }
 
         fetchHabits()
@@ -61,6 +64,9 @@ class MainActivity : ComponentActivity() {
                     },
                     onDelete = { habit ->
                         deleteHabit(habit.id)
+                    },
+                    onEdit = { habit ->
+                        showEditDialog(habit)
                     }
                 )
             }
@@ -80,6 +86,67 @@ class MainActivity : ComponentActivity() {
             } catch (e: Exception) {
                 e.printStackTrace()
             }
+        }
+    }
+
+    private fun showAddDialog() {
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(48, 32, 48, 0)
+        }
+        val nameInput = EditText(this).apply { hint = "Name" }
+        val descInput = EditText(this).apply { hint = "Description" }
+        layout.addView(nameInput)
+        layout.addView(descInput)
+
+        AlertDialog.Builder(this)
+            .setTitle("New Habit")
+            .setView(layout)
+            .setPositiveButton("Add") { _, _ ->
+                val name = nameInput.text.toString().trim()
+                val desc = descInput.text.toString().trim()
+                if (name.isNotEmpty()) {
+                    addHabit(name, desc)
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun showEditDialog(habit: Habit) {
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(48, 32, 48, 0)
+        }
+        val nameInput = EditText(this).apply {
+            hint = "Name"
+            setText(habit.name)
+        }
+        val descInput = EditText(this).apply {
+            hint = "Description"
+            setText(habit.description)
+        }
+        layout.addView(nameInput)
+        layout.addView(descInput)
+
+        AlertDialog.Builder(this)
+            .setTitle("Edit Habit")
+            .setView(layout)
+            .setPositiveButton("Save") { _, _ ->
+                val newName = nameInput.text.toString().trim()
+                val newDesc = descInput.text.toString().trim()
+                if (newName.isNotEmpty()) {
+                    editHabit(habit.id, newName, newDesc)
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun editHabit(id: Int, name: String, description: String) {
+        lifecycleScope.launch {
+            RetrofitInstance.api.updateHabit(id, Habit(id, name, description))
+            fetchHabits()
         }
     }
 

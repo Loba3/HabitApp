@@ -7,6 +7,7 @@ import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 
 data class HabitLogRequest(
@@ -31,4 +32,7 @@ interface ApiService {
 
     @DELETE("api/habits/{id}")
     suspend fun deleteHabit(@Path("id") id: Int): Response<Unit>
+
+    @PUT("api/habits/{id}")
+    suspend fun updateHabit(@Path("id") id: Int, @Body habit: Habit): Response<Habit>
 }
