@@ -7,6 +7,6 @@
         public bool Completed { get; set; }
 
         public int HabitId { get; set; }
-        public Habit Habit { get; set; }
+        public Habit? Habit { get; set; }
     }
 }

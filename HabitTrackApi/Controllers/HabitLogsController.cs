@@ -25,9 +25,19 @@ namespace HabitTrackerAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<HabitLog>> CreateLog(HabitLog log)
         {
+            // Validate that the habit exists
+            var habitExists = await _context.Habits.AnyAsync(h => h.Id == log.HabitId);
+            if (!habitExists)
+            {
+                return BadRequest($"Habit with ID {log.HabitId} does not exist.");
+            }
+
+            // Ensure we only use the HabitId, not the full Habit object
+            log.Habit = null;
+
             _context.HabitLogs.Add(log);
             await _context.SaveChangesAsync();
-            return log;
+            return CreatedAtAction(nameof(GetLogs), new { id = log.Id }, log);
         }
 
         [HttpPut("{id}")]

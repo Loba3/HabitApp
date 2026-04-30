@@ -28,6 +28,8 @@ class HabitAdapter(
         return ViewHolder(view)
     }
 
+    private val pendingIds = mutableSetOf<Int>()
+
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val habit = habits[position]
 
@@ -40,11 +42,15 @@ class HabitAdapter(
         holder.checkBox.isChecked = completedToday.contains(habit.id)
 
         holder.checkBox.setOnCheckedChangeListener { _, isChecked ->
+            if (pendingIds.contains(habit.id)) return@setOnCheckedChangeListener
+            pendingIds.add(habit.id)
             onChecked(habit, isChecked)
         }
 
         holder.itemView.setOnClickListener {
-            holder.checkBox.isChecked = !holder.checkBox.isChecked
+            if (!pendingIds.contains(habit.id)) {
+                holder.checkBox.isChecked = !holder.checkBox.isChecked
+            }
         }
 
         holder.itemView.setOnLongClickListener {
